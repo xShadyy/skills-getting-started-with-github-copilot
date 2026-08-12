@@ -127,3 +127,34 @@ def signup_for_activity(activity_name: str, email: str):
     # Add student (store normalized email to avoid future duplicates)
     activity.setdefault("participants", []).append(email_normalized)
     return {"message": f"Signed up {email_normalized} for {activity_name}"}
+
+
+@app.delete("/activities/{activity_name}/signup")
+def unregister_from_activity(activity_name: str, email: str):
+    """Unregister a student from an activity.
+
+    Accepts email as a query parameter. Normalizes the email and removes it
+    from the participants list if present.
+    """
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    if not email or not isinstance(email, str):
+        raise HTTPException(status_code=400, detail="Invalid email provided")
+    email_normalized = email.strip().lower()
+
+    activity = activities[activity_name]
+    participants = activity.get("participants", [])
+    normalized_participants = [p.strip().lower() for p in participants]
+
+    if email_normalized not in normalized_participants:
+        raise HTTPException(status_code=404, detail="Student not registered for this activity")
+
+    # Remove first matching participant (normalized)
+    for i, p in enumerate(participants):
+        if p.strip().lower() == email_normalized:
+            participants.pop(i)
+            break
+
+    return {"message": f"Unregistered {email_normalized} from {activity_name}"}
